@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+
+# Environment variables (VERY IMPORTANT)
+.env
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
+
+# WhatsApp session (CRITICAL - never commit this)
+.wwebjs_auth/
+.wwebjs_cache/
+
+# Build / temp
+dist/
+build/
+.tmp/
+.cache/
+
+# PM2 logs
+.pm2/
