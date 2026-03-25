@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>WhatsApp Connect</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #fff;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(10px);
+      padding: 40px;
+      border-radius: 16px;
+      text-align: center;
+      width: 350px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    h2 {
+      margin-bottom: 20px;
+      font-weight: 600;
+    }
+
+    button {
+      background: #25D366;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 8px;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      transition: 0.3s ease;
+    }
+
+    button:hover {
+      background: #1ebe5d;
+      transform: scale(1.05);
+    }
+
+    #qr {
+      margin-top: 25px;
+      width: 250px;
+      height: 250px;
+      border-radius: 12px;
+      background: #fff;
+      padding: 10px;
+      display: none;
+    }
+
+    .status {
+      margin-top: 15px;
+      font-size: 14px;
+      opacity: 0.8;
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <h2>Connect WhatsApp</h2>
+
+    <button onclick="connect()">Connect</button>
+
+    <img id="qr" />
+
+    <div class="status" id="status">Click connect to generate QR</div>
+  </div>
+
+  <script>
+    let interval;
+
+    async function connect() {
+      document.getElementById('status').innerText = "Generating QR...";
+      
+      await fetch('/api/whatsapp/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: 'client1' })
+      });
+
+      if (interval) clearInterval(interval);
+
+      interval = setInterval(async () => {
+        const res = await fetch('/api/whatsapp/qr/client1');
+        const data = await res.json();
+
+        if (data.qr) {
+          const qrImg = document.getElementById('qr');
+          qrImg.src = data.qr;
+          qrImg.style.display = 'block';
+
+          document.getElementById('status').innerText = "Scan QR with WhatsApp";
+        }
+      }, 2000);
+    }
+  </script>
+
+</body>
+</html>

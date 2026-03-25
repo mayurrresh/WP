@@ -1,39 +1,25 @@
-require('dotenv').config(); // ✅ MUST be at the very top
+require('dotenv').config();
 
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
+console.log("Starting server...");
 
-// Import routes
-const hotelRoutes = require('./routes/hotelRoutes');
+const app = require('./app');
+const connectDB = require('./config/db');
 
-const app = express();
+(async () => {
+  try {
+    console.log("Connecting DB...");
+    await connectDB();
 
-// Middlewares
-app.use(express.json());
-app.use(cors());
+    console.log("Starting Express...");
 
-// ✅ MongoDB connection + WhatsApp initialization
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log("MongoDB connected");
+    const PORT = process.env.PORT || 3000;
 
-    // ✅ Start WhatsApp bot ONLY after DB connects
-    require('./whatsapp');
-  })
-  .catch(err => {
-    console.log("Mongo Error:", err);
-    process.exit(1);
-  });
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
 
-// Routes
-app.use('/api', hotelRoutes);
-
-// Test route
-app.get('/', (req, res) => {
-  res.send("Hotel API is running 🚀");
-});
-
-// Start server
-const PORT = 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  } catch (err) {
+    console.error("Startup error:", err);
+    process.exit(1); // 🔥 important for Render
+  }
+})();
