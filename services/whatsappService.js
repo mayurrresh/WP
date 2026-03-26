@@ -5,64 +5,94 @@ const clients = {};
 const qrStore = {};
 
 function initClient(userId, handleMessage) {
-  // 🚫 prevent duplicate clients
-  if (clients[userId]) {
-    console.log(`⚠️ Client ${userId} already exists`);
-    return clients[userId];
-  }
-
-  const client = new Client({
-    authStrategy: new LocalAuth({ clientId: userId }),
-
-    puppeteer: {
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--single-process',
-        '--no-zygote',
-        '--disable-gpu'
-      ]
+    if (clients[userId]) {
+        console.log(`⚠️ Client ${userId} already exists`);
+        return clients[userId];
     }
-  });
 
-  clients[userId] = client;
+    console.log(`🚀 Creating WhatsApp client for ${userId}`);
 
-  // 📲 QR generation
-  client.on('qr', async (qr) => {
-    try {
-      qrStore[userId] = await QRCode.toDataURL(qr);
-      console.log(`📲 QR generated for ${userId}`);
-    } catch (err) {
-      console.log("QR Error:", err);
-    }
-  });
+    const client = new Client({
+        authStrategy: new LocalAuth({ clientId: userId }),
+        puppeteer: {
+            headless: true,
+            // 🔥 CRITICAL FIX FOR RENDER (Check environment variable)
+            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium',
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--no-first-run',
+                '--no-zygote',
+                '--disable-gpu'
+            ]
+        }
+    });
 
-  // ✅ ready
-  client.on('ready', () => {
-    console.log(`✅ ${userId} connected`);
-  });
+    // Store reference immediately to prevent double-init while loading
+    clients[userId] = client;
 
-  // ❌ disconnected
-  client.on('disconnected', (reason) => {
-    console.log(`❌ ${userId} disconnected:`, reason);
-    delete clients[userId];
-  });
+    // 🔥 DEBUG EVENTS
+    client.on('loading_screen', (percent, message) => {
+        console.log(`⏳ [${userId}] Loading ${percent}% - ${message}`);
+    });
 
-  // 📩 message handler
-  client.on('message', (msg) => {
-    handleMessage(userId, msg);
-  });
+    client.on('auth_failure', (msg) => {
+        console.error(`❌ AUTH FAILURE (${userId}):`, msg);
+        delete clients[userId];
+        delete qrStore[userId];
+    });
 
-  // 🚀 initialize
-  client.initialize();
+    client.on('qr', async (qr) => {
+        try {
+            console.log(`📲 QR RECEIVED for ${userId}`);
+            // Convert to Base64 Data URL for easy frontend display
+            qrStore[userId] = await QRCode.toDataURL(qr);
+        } catch (err) {
+            console.error(`❌ QR Error (${userId}):`, err);
+        }
+    });
 
-  return client;
+    client.on('ready', () => {
+        console.log(`✅ ${userId} connected`);
+        // Clear QR code from memory once connected
+        delete qrStore[userId];
+    });
+
+    client.on('disconnected', async (reason) => {
+        console.log(`❌ ${userId} disconnected:`, reason);
+        
+        try {
+            await client.destroy(); // Properly close the browser instance
+        } catch (e) {
+            console.error("Error during client destruction:", e);
+        }
+
+        delete clients[userId];
+        delete qrStore[userId];
+    });
+
+    // 📩 Message handler
+    client.on('message', (msg) => {
+        // Pass the message to your external service logic
+        if (handleMessage) {
+            handleMessage(userId, msg);
+        }
+    });
+
+    // 🚀 Initialize with crash protection
+    client.initialize().catch((err) => {
+        console.error(`❌ INITIALIZE FAILED (${userId}):`, err);
+        delete clients[userId];
+        delete qrStore[userId];
+    });
+
+    return client;
 }
 
 module.exports = {
-  initClient,
-  qrStore,
-  clients
+    initClient,
+    qrStore,
+    clients
 };

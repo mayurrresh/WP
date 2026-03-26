@@ -85,52 +85,52 @@
   </div>
 
   <script>
-    let interval;
+const BASE_URL = "https://whatsapp-automation-nqjy.onrender.com";
 
-    async function connect() {
-      const status = document.getElementById('status');
-      status.innerText = "Generating QR...";
+async function connect() {
+  const status = document.getElementById('status');
+  status.innerText = "Generating QR...";
 
-      try {
-        await fetch('/api/whatsapp/connect', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: 'client1' })
-        });
+  try {
+    await fetch(`${BASE_URL}/api/whatsapp/connect`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: 'client1' })
+    });
 
-        pollQR();
+    pollQR();
 
-      } catch (err) {
-        status.innerText = "Failed to connect";
-        console.error(err);
+  } catch (err) {
+    status.innerText = "Failed to connect";
+    console.error(err);
+  }
+}
+
+function pollQR() {
+  const img = document.getElementById('qr');
+  const status = document.getElementById('status');
+
+  const interval = setInterval(async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/api/whatsapp/qr/client1`);
+      const data = await res.json();
+
+      if (data.qr) {
+        img.src = data.qr;
+        img.style.display = "block";
+        status.innerText = "Scan QR with WhatsApp";
+        clearInterval(interval);
+      } else {
+        status.innerText = "Waiting for QR...";
       }
+
+    } catch (err) {
+      status.innerText = "Error fetching QR";
+      console.error(err);
     }
-
-    function pollQR() {
-      const img = document.getElementById('qr');
-      const status = document.getElementById('status');
-
-      interval = setInterval(async () => {
-        try {
-          const res = await fetch('/api/whatsapp/qr/client1');
-          const data = await res.json();
-
-          if (data.qr) {
-            img.src = data.qr;
-            img.style.display = "block"; // 🔥 SHOW QR
-            status.innerText = "Scan QR with WhatsApp";
-            clearInterval(interval);
-          } else {
-            status.innerText = "Waiting for QR...";
-          }
-
-        } catch (err) {
-          status.innerText = "Error fetching QR";
-          console.error(err);
-        }
-      }, 2000);
-    }
-  </script>
+  }, 2000);
+}
+</script>
 
 </body>
 
