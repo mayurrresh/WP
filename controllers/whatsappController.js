@@ -27,17 +27,19 @@ exports.connect = (req, res) => {
 
     console.log(`🚀 Initializing client for: ${userId}`);
 
-    // 🔥 Fire and forget (never block response)
-    initClient(userId, handleMessage)
-      .then(() => {
-        console.log(`✅ Client initialized: ${userId}`);
-      })
-      .catch((err) => {
-        console.error(`❌ INIT ERROR (${userId}):`, err);
-        delete clients[userId];
+    // ✅ FIX: NO .then() — initClient is NOT async
+    try {
+      initClient(userId, handleMessage);
+      console.log(`✅ Client init triggered for: ${userId}`);
+    } catch (err) {
+      console.error(`❌ INIT ERROR (${userId}):`, err);
+      delete clients[userId];
+      return res.status(500).json({
+        error: "Failed to initialize client"
       });
+    }
 
-    // ✅ ALWAYS respond immediately
+    // ✅ Always respond
     return res.status(200).json({
       status: "starting",
       message: "QR generation started"
@@ -72,7 +74,6 @@ exports.getQR = async (req, res) => {
       return res.json({ status: "not_found" });
     }
 
-    // 🔥 Safe state check (never crash)
     let state = null;
     try {
       state = await client.getState();
@@ -131,7 +132,6 @@ exports.sendMessage = async (req, res) => {
       });
     }
 
-    // 📞 Clean phone number
     const cleaned = phone.replace(/\D/g, '');
     const formatted = `${cleaned}@c.us`;
 
