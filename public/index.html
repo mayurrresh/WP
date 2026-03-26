@@ -67,7 +67,7 @@
     .status {
       margin-top: 15px;
       font-size: 14px;
-      opacity: 0.8;
+      opacity: 0.9;
     }
   </style>
 </head>
@@ -85,34 +85,51 @@
   </div>
 
   <script>
-    async function connect() {
-      await fetch('/api/whatsapp/connect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: 'client1' })
-      });
+    let interval;
 
-      pollQR();
+    async function connect() {
+      const status = document.getElementById('status');
+      status.innerText = "Generating QR...";
+
+      try {
+        await fetch('/api/whatsapp/connect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: 'client1' })
+        });
+
+        pollQR();
+
+      } catch (err) {
+        status.innerText = "Failed to connect";
+        console.error(err);
+      }
     }
 
-    async function pollQR() {
+    function pollQR() {
       const img = document.getElementById('qr');
+      const status = document.getElementById('status');
 
-      const interval = setInterval(async () => {
+      interval = setInterval(async () => {
         try {
           const res = await fetch('/api/whatsapp/qr/client1');
           const data = await res.json();
 
           if (data.qr) {
             img.src = data.qr;
+            img.style.display = "block"; // 🔥 SHOW QR
+            status.innerText = "Scan QR with WhatsApp";
             clearInterval(interval);
+          } else {
+            status.innerText = "Waiting for QR...";
           }
+
         } catch (err) {
-          console.log("QR fetch error", err);
+          status.innerText = "Error fetching QR";
+          console.error(err);
         }
       }, 2000);
     }
-
   </script>
 
 </body>
