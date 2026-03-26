@@ -1,5 +1,6 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const QRCode = require('qrcode');
+const puppeteer = require('puppeteer');
 
 const clients = {};
 const qrStore = {};
@@ -16,15 +17,11 @@ function initClient(userId, handleMessage) {
         authStrategy: new LocalAuth({ clientId: userId }),
         puppeteer: {
             headless: true,
-            // 🔥 CRITICAL FIX FOR RENDER (Check environment variable)
-            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
+            executablePath: puppeteer.executablePath(),
             args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
                 '--disable-dev-shm-usage',
-                '--disable-accelerated-2d-canvas',
-                '--no-first-run',
-                '--no-zygote',
                 '--disable-gpu'
             ]
         }
@@ -62,7 +59,7 @@ function initClient(userId, handleMessage) {
 
     client.on('disconnected', async (reason) => {
         console.log(`❌ ${userId} disconnected:`, reason);
-        
+
         try {
             await client.destroy(); // Properly close the browser instance
         } catch (e) {
