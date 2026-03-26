@@ -17,7 +17,7 @@ function initClient(userId, handleMessage) {
         puppeteer: {
             headless: true,
             // 🔥 CRITICAL FIX FOR RENDER (Check environment variable)
-            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium',
+            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
             args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
