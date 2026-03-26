@@ -1,6 +1,5 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const QRCode = require('qrcode');
-const puppeteer = require('puppeteer'); // 🔥 important
 
 const clients = {};
 const qrStore = {};
@@ -16,17 +15,16 @@ function initClient(userId, handleMessage) {
     authStrategy: new LocalAuth({ clientId: userId }),
 
     puppeteer: {
-  headless: true,
-  executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || null,
-  args: [
-    '--no-sandbox',
-    '--disable-setuid-sandbox',
-    '--disable-dev-shm-usage',
-    '--single-process',
-    '--no-zygote',
-    '--disable-gpu'
-  ]
-}
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--single-process',
+        '--no-zygote',
+        '--disable-gpu'
+      ]
+    }
   });
 
   clients[userId] = client;
