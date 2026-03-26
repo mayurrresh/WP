@@ -1,10 +1,8 @@
 <!DOCTYPE html>
-
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>WhatsApp Connect</title>
 
   <style>
@@ -55,6 +53,11 @@
       transform: scale(1.05);
     }
 
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
     #qr {
       margin-top: 25px;
       width: 250px;
@@ -71,7 +74,6 @@
       opacity: 0.9;
     }
   </style>
-
 </head>
 
 <body>
@@ -79,14 +81,11 @@
   <div class="container">
     <h2>Connect WhatsApp</h2>
 
-    ```
     <button onclick="connect()">Connect</button>
 
     <img id="qr" />
 
     <div class="status" id="status">Click connect to generate QR</div>
-    ```
-
   </div>
 
   <script>
@@ -101,7 +100,6 @@
       const status = document.getElementById('status');
       const btn = document.querySelector('button');
 
-      // 🔥 reset everything
       retryCount = 0;
       isPolling = false;
 
@@ -115,11 +113,8 @@
           body: JSON.stringify({ userId: USER_ID })
         });
 
-        if (!res.ok) {
-          throw new Error("Backend failed");
-        }
+        if (!res.ok) throw new Error("Backend failed");
 
-        // ⏳ WAIT before polling (CRITICAL)
         setTimeout(() => {
           if (!isPolling) {
             isPolling = true;
@@ -189,6 +184,6 @@
       setTimeout(pollQR, 5000);
     }
   </script>
-</body>
 
+</body>
 </html>
