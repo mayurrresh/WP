@@ -22,17 +22,37 @@ function initClient(userId, handleMessage) {
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
                 '--disable-dev-shm-usage',
-                '--disable-gpu'
+                '--disable-gpu',
+                '--no-zygote',
+                '--single-process'
             ]
         }
     });
 
-    // Store reference immediately to prevent double-init while loading
     clients[userId] = client;
 
-    // 🔥 DEBUG EVENTS
+    // 🔥 FULL DEBUG LOGGING
+
     client.on('loading_screen', (percent, message) => {
         console.log(`⏳ [${userId}] Loading ${percent}% - ${message}`);
+    });
+
+    client.on('qr', async (qr) => {
+        try {
+            console.log(`📲 QR RECEIVED for ${userId}`);
+            qrStore[userId] = await QRCode.toDataURL(qr);
+        } catch (err) {
+            console.error(`❌ QR Error (${userId}):`, err);
+        }
+    });
+
+    client.on('authenticated', () => {
+        console.log(`🔐 AUTHENTICATED for ${userId}`);
+    });
+
+    client.on('ready', () => {
+        console.log(`✅ WHATSAPP READY for ${userId}`);
+        delete qrStore[userId];
     });
 
     client.on('auth_failure', (msg) => {
@@ -41,49 +61,41 @@ function initClient(userId, handleMessage) {
         delete qrStore[userId];
     });
 
-    client.on('qr', async (qr) => {
-        try {
-            console.log(`📲 QR RECEIVED for ${userId}`);
-            // Convert to Base64 Data URL for easy frontend display
-            qrStore[userId] = await QRCode.toDataURL(qr);
-        } catch (err) {
-            console.error(`❌ QR Error (${userId}):`, err);
-        }
-    });
-
-    client.on('ready', () => {
-        console.log(`✅ ${userId} connected`);
-        // Clear QR code from memory once connected
-        delete qrStore[userId];
+    client.on('change_state', (state) => {
+        console.log(`🔄 STATE CHANGE (${userId}):`, state);
     });
 
     client.on('disconnected', async (reason) => {
-        console.log(`❌ ${userId} disconnected:`, reason);
+        console.log(`❌ DISCONNECTED (${userId}):`, reason);
 
         try {
-            await client.destroy(); // Properly close the browser instance
+            await client.destroy();
         } catch (e) {
-            console.error("Error during client destruction:", e);
+            console.error(`❌ Error destroying client (${userId}):`, e);
         }
 
         delete clients[userId];
         delete qrStore[userId];
     });
 
-    // 📩 Message handler
     client.on('message', (msg) => {
-        // Pass the message to your external service logic
+        console.log(`📩 MESSAGE RECEIVED (${userId}):`, msg.body);
+
         if (handleMessage) {
             handleMessage(userId, msg);
         }
     });
 
-    // 🚀 Initialize with crash protection
-    client.initialize().catch((err) => {
-        console.error(`❌ INITIALIZE FAILED (${userId}):`, err);
-        delete clients[userId];
-        delete qrStore[userId];
-    });
+    // 🚀 Initialize
+    client.initialize()
+        .then(() => {
+            console.log(`🚀 INITIALIZE SUCCESS (${userId})`);
+        })
+        .catch((err) => {
+            console.error(`❌ INITIALIZE FAILED (${userId}):`, err);
+            delete clients[userId];
+            delete qrStore[userId];
+        });
 
     return client;
 }
