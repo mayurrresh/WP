@@ -5,7 +5,7 @@ console.log("🚀 Starting server...");
 const app = require('./app');
 const connectDB = require('./config/db');
 
-// 🔥 Catch unhandled errors
+// 🔥 Global error handlers
 process.on('unhandledRejection', (err) => {
   console.error('❌ Unhandled Rejection:', err);
 });
@@ -14,18 +14,27 @@ process.on('uncaughtException', (err) => {
   console.error('❌ Uncaught Exception:', err);
 });
 
+// 🔥 HEALTH CHECK (important for Fly.io)
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
+});
+
 (async () => {
   try {
     console.log("🔌 Connecting DB...");
     await connectDB();
     console.log("✅ DB Connected");
 
-    const PORT = process.env.PORT || 10000;
+    // 🔥 USE FLY PORT (IMPORTANT)
+    const PORT = process.env.PORT || 3000;
 
-    const server = app.listen(PORT, () => {
-      console.log(`🚀 Server running on http://localhost:${PORT}`);
-      console.log("👉 Open this in your browser manually");
+    const server = app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 Server running on port ${PORT}`);
     });
+
+    // 🔥 Increase timeout (Puppeteer heavy apps)
+    server.keepAliveTimeout = 65000;
+    server.headersTimeout = 66000;
 
     // 🔥 Graceful shutdown
     process.on('SIGTERM', () => {

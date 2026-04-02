@@ -15,10 +15,10 @@ function initClient(userId) {
     const client = new Client({
         authStrategy: new LocalAuth({ clientId: userId }),
 
-        // ✅ CLEAN & STABLE PUPPETEER CONFIG
+        // ✅ FIXED FOR FLY.IO / DOCKER
         puppeteer: {
             headless: true,
-            executablePath: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
             args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
@@ -33,7 +33,7 @@ function initClient(userId) {
     // 🔥 DEBUG EVENTS
 
     client.on('loading_screen', (percent, message) => {
-        console.log(`⏳ [${userId}] Loading ${percent}% - ${message}`);
+        console.log(`⏳ [${userId}] ${percent}% - ${message}`);
     });
 
     client.on('qr', async (qr) => {
@@ -46,18 +46,17 @@ function initClient(userId) {
     });
 
     client.on('authenticated', () => {
-        console.log(`🔐 AUTHENTICATED for ${userId}`);
+        console.log(`🔐 AUTHENTICATED (${userId})`);
     });
 
     client.on('ready', () => {
-        console.log(`✅ WHATSAPP READY for ${userId}`);
+        console.log(`✅ WHATSAPP READY (${userId})`);
         delete qrStore[userId];
     });
 
     client.on('auth_failure', (msg) => {
         console.error(`❌ AUTH FAILURE (${userId}):`, msg);
-        delete clients[userId];
-        delete qrStore[userId];
+        cleanup(userId);
     });
 
     client.on('disconnected', async (reason) => {
@@ -66,29 +65,24 @@ function initClient(userId) {
         try {
             await client.destroy();
         } catch (e) {
-            console.error(`❌ Error destroying client (${userId}):`, e);
+            console.error(`❌ Destroy error (${userId}):`, e);
         }
 
-        delete clients[userId];
-        delete qrStore[userId];
+        cleanup(userId);
     });
 
-    // 🔥 MAIN BOT LOGIC
+    // 🔥 BOT LOGIC
 
     client.on('message', async (msg) => {
-        if (!client.info) {
-            console.log("⚠️ Bot not ready yet");
-            return;
-        }
-
-        if (msg.from.includes("@g.us")) return;
-
-        const text = msg.body.toLowerCase();
-        console.log(`📩 MESSAGE (${userId}):`, text);
-
         try {
+            if (!client.info) return;
+            if (msg.from.includes("@g.us")) return;
+
+            const text = msg.body.toLowerCase();
+            console.log(`📩 ${userId}: ${text}`);
+
             if (text.includes("hi") || text.includes("hello")) {
-                await msg.reply(`👋 Welcome to *[Your Hotel Name]*!
+                return msg.reply(`👋 Welcome to *[Your Hotel Name]*!
 
 Please choose:
 1️⃣ Check Room Prices
@@ -97,8 +91,8 @@ Please choose:
 4️⃣ Talk to Manager`);
             }
 
-            else if (text === "1") {
-                await msg.reply(`💰 *Room Pricing:*
+            if (text === "1") {
+                return msg.reply(`💰 *Room Pricing:*
 
 • Standard – ₹2000  
 • Deluxe – ₹3500  
@@ -107,40 +101,38 @@ Please choose:
 Reply 2 for availability or 3 to book.`);
             }
 
-            else if (text === "2") {
-                await msg.reply(`📅 Please share:
+            if (text === "2") {
+                return msg.reply(`📅 Please share:
 
 • Check-in date  
 • Check-out date  
 • Number of guests`);
             }
 
-            else if (text === "3") {
-                await msg.reply(`🚀 Book instantly here:
+            if (text === "3") {
+                return msg.reply(`🚀 Book instantly here:
 https://yourwebsite.com/book`);
             }
 
-            else if (text === "4") {
-                await msg.reply(`👨‍💼 Manager will assist you shortly.`);
+            if (text === "4") {
+                return msg.reply(`👨‍💼 Manager will assist you shortly.`);
             }
 
-            else {
-                await msg.reply(`❓ Please choose:
+            return msg.reply(`❓ Please choose:
 1️⃣ Pricing
 2️⃣ Availability
 3️⃣ Book Now`);
-            }
 
         } catch (err) {
-            console.error(`❌ Reply error (${userId}):`, err);
+            console.error(`❌ Message error (${userId}):`, err);
         }
     });
 
-    // 🔥 BACKUP EVENT (debugging)
+    // 🔥 BACKUP DEBUG
 
     client.on('message_create', (msg) => {
         if (!msg.fromMe) {
-            console.log(`📨 MESSAGE_CREATE (${userId}):`, msg.body);
+            console.log(`📨 DEBUG (${userId}):`, msg.body);
         }
     });
 
@@ -148,15 +140,20 @@ https://yourwebsite.com/book`);
 
     client.initialize()
         .then(() => {
-            console.log(`🚀 INITIALIZE SUCCESS (${userId})`);
+            console.log(`🚀 INITIALIZED (${userId})`);
         })
         .catch((err) => {
-            console.error(`❌ INITIALIZE FAILED (${userId}):`, err);
-            delete clients[userId];
-            delete qrStore[userId];
+            console.error(`❌ INIT FAILED (${userId}):`, err);
+            cleanup(userId);
         });
 
     return client;
+}
+
+// 🔥 CLEANUP HELPER
+function cleanup(userId) {
+    delete clients[userId];
+    delete qrStore[userId];
 }
 
 module.exports = {
