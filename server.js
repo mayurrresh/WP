@@ -5,7 +5,7 @@ console.log("🚀 Starting server...");
 const app = require('./app');
 const connectDB = require('./config/db');
 
-// 🔥 Catch unhandled errors (VERY IMPORTANT)
+// 🔥 Catch unhandled errors
 process.on('unhandledRejection', (err) => {
   console.error('❌ Unhandled Rejection:', err);
 });
@@ -20,17 +20,26 @@ process.on('uncaughtException', (err) => {
     await connectDB();
     console.log("✅ DB Connected");
 
-    const PORT = process.env.PORT || 3000;
+    const PORT = process.env.PORT || 10000;
 
     const server = app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`🚀 Server running on http://localhost:${PORT}`);
+      console.log("👉 Open this in your browser manually");
     });
 
-    // 🔥 Graceful shutdown (important for Render)
+    // 🔥 Graceful shutdown
     process.on('SIGTERM', () => {
       console.log('⚠️ SIGTERM received. Shutting down...');
       server.close(() => {
         console.log('💀 Process terminated');
+      });
+    });
+
+    process.on('SIGINT', () => {
+      console.log('⚠️ CTRL+C detected. Closing server...');
+      server.close(() => {
+        console.log('💀 Server stopped');
+        process.exit(0);
       });
     });
 

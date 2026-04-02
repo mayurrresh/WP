@@ -1,10 +1,8 @@
 const { initClient, qrStore, clients } = require('../services/whatsappService');
-const { handleMessage } = require('../services/messageService');
 
 /**
-
-* ✅ CONNECT WHATSAPP
-  */
+ * ✅ CONNECT WHATSAPP
+ */
 exports.connect = (req, res) => {
   try {
     console.log("🔥 CONNECT HIT:", req.body);
@@ -27,9 +25,9 @@ exports.connect = (req, res) => {
 
     console.log(`🚀 Initializing client for: ${userId}`);
 
-    // ✅ FIX: NO .then() — initClient is NOT async
     try {
-      initClient(userId, handleMessage);
+      // ✅ FIXED: no handleMessage now
+      initClient(userId);
       console.log(`✅ Client init triggered for: ${userId}`);
     } catch (err) {
       console.error(`❌ INIT ERROR (${userId}):`, err);
@@ -39,7 +37,6 @@ exports.connect = (req, res) => {
       });
     }
 
-    // ✅ Always respond
     return res.status(200).json({
       status: "starting",
       message: "QR generation started"
@@ -55,9 +52,8 @@ exports.connect = (req, res) => {
 };
 
 /**
-
-* ✅ GET QR / STATUS
-  */
+ * ✅ GET QR / STATUS
+ */
 exports.getQR = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -103,9 +99,8 @@ exports.getQR = async (req, res) => {
 };
 
 /**
-
-* 🔥 SEND MESSAGE
-  */
+ * 🔥 SEND MESSAGE (manual trigger)
+ */
 exports.sendMessage = async (req, res) => {
   try {
     console.log("📩 SEND REQUEST:", req.body);

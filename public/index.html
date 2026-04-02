@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>WhatsApp Connect</title>
+  <title>WhatsApp Bot Setup</title>
 
   <style>
     * {
@@ -25,53 +25,53 @@
     .container {
       background: rgba(255, 255, 255, 0.08);
       backdrop-filter: blur(10px);
-      padding: 40px;
+      padding: 30px;
       border-radius: 16px;
       text-align: center;
-      width: 350px;
+      width: 360px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     }
 
     h2 {
-      margin-bottom: 20px;
-      font-weight: 600;
+      margin-bottom: 15px;
     }
 
     button {
       background: #25D366;
       border: none;
-      padding: 12px 20px;
+      padding: 12px;
       border-radius: 8px;
       color: white;
-      font-size: 16px;
       cursor: pointer;
-      transition: 0.3s ease;
-    }
-
-    button:hover {
-      background: #1ebe5d;
-      transform: scale(1.05);
+      width: 100%;
+      margin-top: 10px;
     }
 
     button:disabled {
       opacity: 0.6;
-      cursor: not-allowed;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      border-radius: 6px;
+      border: none;
+      margin-top: 10px;
     }
 
     #qr {
-      margin-top: 25px;
-      width: 250px;
-      height: 250px;
-      border-radius: 12px;
-      background: #fff;
+      margin-top: 20px;
+      width: 220px;
+      height: 220px;
+      background: white;
       padding: 10px;
       display: none;
     }
 
     .status {
-      margin-top: 15px;
-      font-size: 14px;
-      opacity: 0.9;
+      margin-top: 10px;
+      font-size: 13px;
+      min-height: 20px;
     }
   </style>
 </head>
@@ -79,31 +79,38 @@
 <body>
 
   <div class="container">
-    <h2>Connect WhatsApp</h2>
+    <h2>WhatsApp Bot Setup</h2>
 
-    <button onclick="connect()">Connect</button>
+    <button id="connectBtn" onclick="connect()">Connect WhatsApp</button>
 
     <img id="qr" />
 
-    <div class="status" id="status">Click connect to generate QR</div>
+    <div class="status" id="status">Click connect to start</div>
+
+    <hr style="margin:20px 0; opacity:0.2">
+
+    <h3 style="font-size:14px;">Test Bot</h3>
+
+    <input id="phone" placeholder="91XXXXXXXXXX" />
+    <input id="message" value="Hi" />
+
+    <button onclick="sendTest()">Send Test Message</button>
+
+    <div class="status" id="testStatus"></div>
   </div>
 
   <script>
-    const BASE_URL = "https://whatsapp-automation-nqjy.onrender.com";
+    // ✅ FIXED PORT
+    const BASE_URL = "http://localhost:3000";
     const USER_ID = "user1";
 
     let isPolling = false;
-    let retryCount = 0;
-    const MAX_RETRIES = 20;
 
     async function connect() {
       const status = document.getElementById('status');
-      const btn = document.querySelector('button');
+      const btn = document.getElementById('connectBtn');
 
-      retryCount = 0;
-      isPolling = false;
-
-      status.innerText = "Starting WhatsApp... (wait ~30 sec)";
+      status.innerText = "🚀 Starting...";
       btn.disabled = true;
 
       try {
@@ -113,75 +120,86 @@
           body: JSON.stringify({ userId: USER_ID })
         });
 
-        if (!res.ok) throw new Error("Backend failed");
+        if (!res.ok) throw new Error();
 
         setTimeout(() => {
           if (!isPolling) {
             isPolling = true;
             pollQR();
           }
-        }, 8000);
+        }, 3000);
 
-      } catch (err) {
-        status.innerText = "❌ Backend not responding";
+      } catch {
+        status.innerText = "❌ Backend not reachable";
         btn.disabled = false;
-        console.error(err);
       }
     }
 
     async function pollQR() {
       const img = document.getElementById('qr');
       const status = document.getElementById('status');
-      const btn = document.querySelector('button');
 
       try {
         const res = await fetch(`${BASE_URL}/api/whatsapp/qr/${USER_ID}`);
-
-        if (!res.ok) throw new Error("Server error");
-
         const data = await res.json();
-
-        console.log("QR Response:", data);
 
         if (data.status === "qr") {
           img.src = data.qr;
           img.style.display = "block";
           status.innerText = "📲 Scan QR with WhatsApp";
-
-          isPolling = false;
-          btn.disabled = false;
-          retryCount = 0;
           return;
         }
 
         if (data.status === "connected") {
           status.innerText = "✅ WhatsApp Connected!";
           img.style.display = "none";
-
           isPolling = false;
-          btn.disabled = false;
-          retryCount = 0;
           return;
         }
 
-        status.innerText = "⏳ Initializing WhatsApp...";
+        status.innerText = "⏳ Initializing...";
 
-      } catch (err) {
-        console.error(err);
-        status.innerText = "⚠️ Network / Server issue...";
+      } catch {
+        status.innerText = "⚠️ Retry...";
       }
 
-      retryCount++;
+      setTimeout(pollQR, 3000);
+    }
 
-      if (retryCount > MAX_RETRIES) {
-        status.innerText = "❌ Timeout. Try again.";
-        isPolling = false;
-        btn.disabled = false;
-        retryCount = 0;
+    async function sendTest() {
+      const phone = document.getElementById('phone').value;
+      const message = document.getElementById('message').value;
+      const status = document.getElementById('testStatus');
+
+      if (!phone || !message) {
+        status.innerText = "❌ Enter phone & message";
         return;
       }
 
-      setTimeout(pollQR, 5000);
+      status.innerText = "📤 Sending...";
+
+      try {
+        const res = await fetch(`${BASE_URL}/api/whatsapp/send`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: USER_ID,
+            phone,
+            text: message
+          })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          status.innerText = "✅ Message sent!";
+        } else {
+          status.innerText = "❌ Failed to send";
+        }
+
+      } catch {
+        status.innerText = "❌ Error sending message";
+      }
     }
   </script>
 
