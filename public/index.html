@@ -3,203 +3,168 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>WhatsApp Bot Setup</title>
+  <title>Bot Dashboard</title>
 
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: 'Segoe UI', sans-serif;
-    }
-
     body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
       background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
       height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
-      color: #fff;
+      color: white;
     }
 
-    .container {
-      background: rgba(255, 255, 255, 0.08);
-      backdrop-filter: blur(10px);
+    .card {
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(12px);
       padding: 30px;
       border-radius: 16px;
+      width: 320px;
       text-align: center;
-      width: 360px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      animation: fadeIn 0.6s ease;
     }
 
     h2 {
-      margin-bottom: 15px;
+      margin-bottom: 10px;
     }
 
-    button {
-      background: #25D366;
-      border: none;
-      padding: 12px;
-      border-radius: 8px;
-      color: white;
-      cursor: pointer;
-      width: 100%;
-      margin-top: 10px;
-    }
-
-    button:disabled {
-      opacity: 0.6;
+    p {
+      font-size: 13px;
+      opacity: 0.7;
+      margin-bottom: 20px;
     }
 
     input {
       width: 100%;
       padding: 10px;
-      border-radius: 6px;
+      border-radius: 8px;
       border: none;
-      margin-top: 10px;
+      margin-bottom: 15px;
+      outline: none;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: none;
+      background: #25D366;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      transform: scale(1.05);
     }
 
     #qr {
       margin-top: 20px;
       width: 220px;
-      height: 220px;
+      display: none;
       background: white;
       padding: 10px;
-      display: none;
+      border-radius: 10px;
+      animation: pop 0.4s ease;
     }
 
     .status {
-      margin-top: 10px;
+      margin-top: 12px;
       font-size: 13px;
       min-height: 20px;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px);}
+      to { opacity: 1; transform: translateY(0);}
+    }
+
+    @keyframes pop {
+      from { transform: scale(0.8); opacity: 0;}
+      to { transform: scale(1); opacity: 1;}
     }
   </style>
 </head>
 
 <body>
 
-  <div class="container">
-    <h2>WhatsApp Bot Setup</h2>
+  <div class="card">
+    <h2>🔗 Connect WhatsApp</h2>
+    <p>Link your WhatsApp to start automation</p>
 
-    <button id="connectBtn" onclick="connect()">Connect WhatsApp</button>
+    <input id="userId" placeholder="Client ID (hotel1)" />
+
+    <button onclick="connect()">Connect</button>
 
     <img id="qr" />
 
-    <div class="status" id="status">Click connect to start</div>
-
-    <hr style="margin:20px 0; opacity:0.2">
-
-    <h3 style="font-size:14px;">Test Bot</h3>
-
-    <input id="phone" placeholder="91XXXXXXXXXX" />
-    <input id="message" value="Hi" />
-
-    <button onclick="sendTest()">Send Test Message</button>
-
-    <div class="status" id="testStatus"></div>
+    <div class="status" id="status">Idle</div>
   </div>
 
   <script>
-    // ✅ FIXED PORT
     const BASE_URL = "http://localhost:3000";
-    const USER_ID = "user1";
-
-    let isPolling = false;
 
     async function connect() {
+      const userId = document.getElementById('userId').value;
       const status = document.getElementById('status');
-      const btn = document.getElementById('connectBtn');
+      const btn = document.querySelector('button');
 
-      status.innerText = "🚀 Starting...";
+      if (!userId) {
+        status.innerText = "❌ Enter Client ID";
+        return;
+      }
+
       btn.disabled = true;
+      status.innerText = "🚀 Starting...";
 
       try {
-        const res = await fetch(`${BASE_URL}/api/whatsapp/connect`, {
+        await fetch(`${BASE_URL}/api/whatsapp/connect`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: USER_ID })
+          body: JSON.stringify({ userId })
         });
 
-        if (!res.ok) throw new Error();
-
-        setTimeout(() => {
-          if (!isPolling) {
-            isPolling = true;
-            pollQR();
-          }
-        }, 3000);
+        setTimeout(() => pollQR(userId), 2000);
 
       } catch {
-        status.innerText = "❌ Backend not reachable";
+        status.innerText = "❌ Backend error";
         btn.disabled = false;
       }
     }
 
-    async function pollQR() {
+    async function pollQR(userId) {
       const img = document.getElementById('qr');
       const status = document.getElementById('status');
 
       try {
-        const res = await fetch(`${BASE_URL}/api/whatsapp/qr/${USER_ID}`);
+        const res = await fetch(`${BASE_URL}/api/whatsapp/qr/${userId}`);
         const data = await res.json();
 
         if (data.status === "qr") {
           img.src = data.qr;
           img.style.display = "block";
-          status.innerText = "📲 Scan QR with WhatsApp";
+          status.innerText = "📲 Scan QR in WhatsApp";
           return;
         }
 
         if (data.status === "connected") {
-          status.innerText = "✅ WhatsApp Connected!";
+          status.innerText = "✅ Connected successfully";
           img.style.display = "none";
-          isPolling = false;
           return;
         }
 
         status.innerText = "⏳ Initializing...";
 
       } catch {
-        status.innerText = "⚠️ Retry...";
+        status.innerText = "⚠️ Retrying...";
       }
 
-      setTimeout(pollQR, 3000);
-    }
-
-    async function sendTest() {
-      const phone = document.getElementById('phone').value;
-      const message = document.getElementById('message').value;
-      const status = document.getElementById('testStatus');
-
-      if (!phone || !message) {
-        status.innerText = "❌ Enter phone & message";
-        return;
-      }
-
-      status.innerText = "📤 Sending...";
-
-      try {
-        const res = await fetch(`${BASE_URL}/api/whatsapp/send`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: USER_ID,
-            phone,
-            text: message
-          })
-        });
-
-        const data = await res.json();
-
-        if (data.success) {
-          status.innerText = "✅ Message sent!";
-        } else {
-          status.innerText = "❌ Failed to send";
-        }
-
-      } catch {
-        status.innerText = "❌ Error sending message";
-      }
+      setTimeout(() => pollQR(userId), 2000);
     }
   </script>
 

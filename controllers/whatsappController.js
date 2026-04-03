@@ -1,22 +1,19 @@
 const { initClient, qrStore, clients } = require('../services/whatsappService');
 
 /**
- * ✅ CONNECT WHATSAPP
+ * ✅ CONNECT
  */
-exports.connect = (req, res) => {
+exports.connect = async (req, res) => {
   try {
     console.log("🔥 CONNECT HIT:", req.body);
 
     const { userId } = req.body;
 
     if (!userId) {
-      console.log("❌ Missing userId");
       return res.status(400).json({ error: "userId is required" });
     }
 
-    // 🚫 Prevent duplicate initialization
     if (clients[userId]) {
-      console.log("⚠️ Client already exists:", userId);
       return res.json({
         status: "already_exists",
         message: "Client already initialized"
@@ -25,17 +22,7 @@ exports.connect = (req, res) => {
 
     console.log(`🚀 Initializing client for: ${userId}`);
 
-    try {
-      // ✅ FIXED: no handleMessage now
-      initClient(userId);
-      console.log(`✅ Client init triggered for: ${userId}`);
-    } catch (err) {
-      console.error(`❌ INIT ERROR (${userId}):`, err);
-      delete clients[userId];
-      return res.status(500).json({
-        error: "Failed to initialize client"
-      });
-    }
+    await initClient(userId);
 
     return res.status(200).json({
       status: "starting",
@@ -43,9 +30,12 @@ exports.connect = (req, res) => {
     });
 
   } catch (err) {
-    console.error("❌ CONNECT CRASH:", err);
+    console.error(`❌ CONNECT ERROR:`, err);
+
+    delete clients[req.body.userId];
+
     return res.status(500).json({
-      error: "Internal server error",
+      error: "Failed to initialize client",
       details: err.message
     });
   }
@@ -71,6 +61,7 @@ exports.getQR = async (req, res) => {
     }
 
     let state = null;
+
     try {
       state = await client.getState();
     } catch (e) {
@@ -91,6 +82,7 @@ exports.getQR = async (req, res) => {
 
   } catch (err) {
     console.error("❌ QR ERROR:", err);
+
     return res.status(500).json({
       error: "QR fetch failed",
       details: err.message
@@ -99,7 +91,7 @@ exports.getQR = async (req, res) => {
 };
 
 /**
- * 🔥 SEND MESSAGE (manual trigger)
+ * ✅ SEND MESSAGE
  */
 exports.sendMessage = async (req, res) => {
   try {
@@ -115,15 +107,9 @@ exports.sendMessage = async (req, res) => {
 
     const client = clients[userId];
 
-    if (!client) {
-      return res.status(404).json({
-        error: "Client not found. Connect first."
-      });
-    }
-
-    if (!client.info) {
+    if (!client || !client.info) {
       return res.status(400).json({
-        error: "Client not ready yet"
+        error: "Client not ready"
       });
     }
 
@@ -141,6 +127,7 @@ exports.sendMessage = async (req, res) => {
 
   } catch (err) {
     console.error("❌ SEND ERROR:", err);
+
     return res.status(500).json({
       error: "Failed to send message",
       details: err.message

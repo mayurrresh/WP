@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Hotel Booking</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f2027;
+      color: white;
+    }
+
+    .hero {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      text-align: center;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+    }
+
+    h1 {
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+
+    p {
+      opacity: 0.8;
+      margin-bottom: 25px;
+      max-width: 300px;
+    }
+
+    .btn {
+      background: #25D366;
+      padding: 14px 22px;
+      border-radius: 10px;
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 16px;
+      display: inline-block;
+      transition: 0.2s;
+    }
+
+    .btn:hover {
+      transform: scale(1.05);
+      opacity: 0.9;
+    }
+
+    .features {
+      padding: 40px 20px;
+      text-align: center;
+      background: #111;
+    }
+
+    .feature {
+      margin-bottom: 20px;
+    }
+
+    .footer {
+      text-align: center;
+      padding: 20px;
+      font-size: 12px;
+      opacity: 0.6;
+    }
+
+    @media (min-width: 768px) {
+      h1 {
+        font-size: 42px;
+      }
+
+      p {
+        max-width: 500px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- 🔥 HERO -->
+  <section class="hero">
+    <h1>🏨 Book Your Stay Instantly</h1>
+    <p>
+      No forms. No waiting. Chat with us on WhatsApp and confirm your booking in seconds.
+    </p>
+
+    <a 
+      class="btn"
+      href="https://wa.me/+918999375047?text=Hi%20I%20want%20to%20book%20a%20room"
+      target="_blank"
+    >
+      📲 Book via WhatsApp
+    </a>
+  </section>
+
+  <!-- 🔥 FEATURES -->
+  <section class="features">
+    <div class="feature">⚡ Instant responses</div>
+    <div class="feature">📅 Real-time availability</div>
+    <div class="feature">💬 Direct chat with hotel</div>
+  </section>
+
+  <!-- 🔥 FOOTER -->
+  <div class="footer">
+    © 2026 Your Hotel Name
+  </div>
+
+</body>
+</html>
