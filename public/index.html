@@ -25,12 +25,9 @@
       width: 320px;
       text-align: center;
       box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-      animation: fadeIn 0.6s ease;
     }
 
-    h2 {
-      margin-bottom: 10px;
-    }
+    h2 { margin-bottom: 10px; }
 
     p {
       font-size: 13px;
@@ -56,11 +53,11 @@
       color: white;
       font-weight: bold;
       cursor: pointer;
-      transition: 0.2s;
     }
 
-    button:hover {
-      transform: scale(1.05);
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
 
     #qr {
@@ -70,23 +67,12 @@
       background: white;
       padding: 10px;
       border-radius: 10px;
-      animation: pop 0.4s ease;
     }
 
     .status {
       margin-top: 12px;
       font-size: 13px;
       min-height: 20px;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px);}
-      to { opacity: 1; transform: translateY(0);}
-    }
-
-    @keyframes pop {
-      from { transform: scale(0.8); opacity: 0;}
-      to { transform: scale(1); opacity: 1;}
     }
   </style>
 </head>
@@ -99,7 +85,7 @@
 
     <input id="userId" placeholder="Client ID (hotel1)" />
 
-    <button onclick="connect()">Connect</button>
+    <button id="connectBtn" onclick="connect()">Connect</button>
 
     <img id="qr" />
 
@@ -107,12 +93,15 @@
   </div>
 
   <script>
-    const BASE_URL = "http://localhost:3000";
+    // 🔥 FIX: NO localhost
+    const BASE_URL = "";
+
+    let polling = false;
 
     async function connect() {
       const userId = document.getElementById('userId').value;
       const status = document.getElementById('status');
-      const btn = document.querySelector('button');
+      const btn = document.getElementById('connectBtn');
 
       if (!userId) {
         status.innerText = "❌ Enter Client ID";
@@ -123,15 +112,28 @@
       status.innerText = "🚀 Starting...";
 
       try {
-        await fetch(`${BASE_URL}/api/whatsapp/connect`, {
+        const res = await fetch(`/api/whatsapp/connect`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId })
         });
 
-        setTimeout(() => pollQR(userId), 2000);
+        const data = await res.json();
 
-      } catch {
+        if (!res.ok) {
+          status.innerText = "❌ " + (data.error || "Failed");
+          btn.disabled = false;
+          return;
+        }
+
+        // start polling
+        if (!polling) {
+          polling = true;
+          setTimeout(() => pollQR(userId), 2000);
+        }
+
+      } catch (err) {
+        console.error(err);
         status.innerText = "❌ Backend error";
         btn.disabled = false;
       }
@@ -142,7 +144,7 @@
       const status = document.getElementById('status');
 
       try {
-        const res = await fetch(`${BASE_URL}/api/whatsapp/qr/${userId}`);
+        const res = await fetch(`/api/whatsapp/qr/${userId}`);
         const data = await res.json();
 
         if (data.status === "qr") {
@@ -155,12 +157,20 @@
         if (data.status === "connected") {
           status.innerText = "✅ Connected successfully";
           img.style.display = "none";
+          polling = false;
+          return;
+        }
+
+        if (data.status === "not_found") {
+          status.innerText = "⚠️ Session expired, reconnect";
+          polling = false;
           return;
         }
 
         status.innerText = "⏳ Initializing...";
 
-      } catch {
+      } catch (err) {
+        console.error(err);
         status.innerText = "⚠️ Retrying...";
       }
 

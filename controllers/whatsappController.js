@@ -1,7 +1,7 @@
 const { initClient, qrStore, clients } = require('../services/whatsappService');
 
 /**
- * ✅ CONNECT
+ * ✅ CONNECT (AGGRESSIVE SAFE VERSION)
  */
 exports.connect = async (req, res) => {
   try {
@@ -13,6 +13,14 @@ exports.connect = async (req, res) => {
       return res.status(400).json({ error: "userId is required" });
     }
 
+    // 🔥 HARD LIMIT: ONLY ONE SESSION (CRITICAL FOR LOW RAM)
+    if (Object.keys(clients).length > 0) {
+      return res.status(429).json({
+        error: "Server busy. Try again later."
+      });
+    }
+
+    // 🔁 Prevent duplicate same user
     if (clients[userId]) {
       return res.json({
         status: "already_exists",
@@ -22,7 +30,17 @@ exports.connect = async (req, res) => {
 
     console.log(`🚀 Initializing client for: ${userId}`);
 
-    await initClient(userId);
+    // 🔥 SAFE INIT (prevents crash propagation)
+    try {
+      await initClient(userId);
+    } catch (err) {
+      console.error(`❌ INIT ERROR (${userId}):`, err);
+      delete clients[userId];
+
+      return res.status(500).json({
+        error: "Server overloaded. Retry."
+      });
+    }
 
     return res.status(200).json({
       status: "starting",
@@ -30,25 +48,22 @@ exports.connect = async (req, res) => {
     });
 
   } catch (err) {
-    console.error(`❌ CONNECT ERROR:`, err);
+    console.error("❌ CONNECT CRASH:", err);
 
-    delete clients[req.body.userId];
+    delete clients[req.body?.userId];
 
     return res.status(500).json({
-      error: "Failed to initialize client",
-      details: err.message
+      error: "Internal server error"
     });
   }
 };
 
 /**
- * ✅ GET QR / STATUS
+ * ✅ GET QR / STATUS (OPTIMIZED)
  */
 exports.getQR = async (req, res) => {
   try {
     const { userId } = req.params;
-
-    console.log("📡 QR CHECK:", userId);
 
     if (!userId) {
       return res.status(400).json({ error: "userId required" });
@@ -64,8 +79,8 @@ exports.getQR = async (req, res) => {
 
     try {
       state = await client.getState();
-    } catch (e) {
-      console.log("⚠️ getState failed");
+    } catch {
+      // ignore (low memory situations)
     }
 
     if (state === "CONNECTED") {
@@ -84,19 +99,16 @@ exports.getQR = async (req, res) => {
     console.error("❌ QR ERROR:", err);
 
     return res.status(500).json({
-      error: "QR fetch failed",
-      details: err.message
+      error: "QR fetch failed"
     });
   }
 };
 
 /**
- * ✅ SEND MESSAGE
+ * ✅ SEND MESSAGE (SAFE + LIGHT)
  */
 exports.sendMessage = async (req, res) => {
   try {
-    console.log("📩 SEND REQUEST:", req.body);
-
     const { userId, phone, text } = req.body;
 
     if (!userId || !phone || !text) {
@@ -116,9 +128,15 @@ exports.sendMessage = async (req, res) => {
     const cleaned = phone.replace(/\D/g, '');
     const formatted = `${cleaned}@c.us`;
 
-    await client.sendMessage(formatted, text);
+    try {
+      await client.sendMessage(formatted, text);
+    } catch (err) {
+      console.error("❌ SEND FAIL:", err);
 
-    console.log("✅ Message sent:", formatted);
+      return res.status(500).json({
+        error: "Message failed"
+      });
+    }
 
     return res.json({
       success: true,
@@ -129,8 +147,7 @@ exports.sendMessage = async (req, res) => {
     console.error("❌ SEND ERROR:", err);
 
     return res.status(500).json({
-      error: "Failed to send message",
-      details: err.message
+      error: "Internal server error"
     });
   }
 };

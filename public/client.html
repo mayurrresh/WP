@@ -25,14 +25,14 @@
     }
 
     h1 {
-      font-size: 32px;
+      font-size: 34px;
       margin-bottom: 10px;
     }
 
     p {
       opacity: 0.8;
       margin-bottom: 25px;
-      max-width: 300px;
+      max-width: 400px;
     }
 
     .btn {
@@ -45,6 +45,8 @@
       font-size: 16px;
       display: inline-block;
       transition: 0.2s;
+      border: none;
+      cursor: pointer;
     }
 
     .btn:hover {
@@ -60,6 +62,7 @@
 
     .feature {
       margin-bottom: 20px;
+      opacity: 0.85;
     }
 
     .footer {
@@ -70,13 +73,8 @@
     }
 
     @media (min-width: 768px) {
-      h1 {
-        font-size: 42px;
-      }
-
-      p {
-        max-width: 500px;
-      }
+      h1 { font-size: 42px; }
+      p { max-width: 500px; }
     }
   </style>
 </head>
@@ -87,29 +85,44 @@
   <section class="hero">
     <h1>🏨 Book Your Stay Instantly</h1>
     <p>
-      No forms. No waiting. Chat with us on WhatsApp and confirm your booking in seconds.
+      Skip forms. Just chat with us on WhatsApp and confirm your room in seconds.
     </p>
 
-    <a 
-      class="btn"
-      href="https://wa.me/+918999375047?text=Hi%20I%20want%20to%20book%20a%20room"
-      target="_blank"
-    >
+    <button class="btn" onclick="openWhatsApp()">
       📲 Book via WhatsApp
-    </a>
+    </button>
   </section>
 
   <!-- 🔥 FEATURES -->
   <section class="features">
-    <div class="feature">⚡ Instant responses</div>
+    <div class="feature">⚡ Instant replies</div>
     <div class="feature">📅 Real-time availability</div>
-    <div class="feature">💬 Direct chat with hotel</div>
+    <div class="feature">💬 Direct booking support</div>
   </section>
 
   <!-- 🔥 FOOTER -->
   <div class="footer">
     © 2026 Your Hotel Name
   </div>
+
+  <script>
+    // 🔥 CHANGE THIS NUMBER ONLY
+    const PHONE = "918999375047";
+
+    function openWhatsApp() {
+      // dynamic message (feels smarter)
+      const message = encodeURIComponent(
+        "Hi, I want to check room availability."
+      );
+
+      const url = `https://wa.me/${PHONE}?text=${message}`;
+
+      // optional: log click (for demo feel)
+      console.log("📲 WhatsApp button clicked");
+
+      window.open(url, "_blank");
+    }
+  </script>
 
 </body>
 </html>

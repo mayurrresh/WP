@@ -6,7 +6,7 @@ const clients = {};
 const qrStore = {};
 
 /**
- * 🚀 INIT CLIENT
+ * 🚀 INIT CLIENT (ULTRA OPTIMIZED FOR LOW RAM)
  */
 async function initClient(userId) {
     if (clients[userId]) {
@@ -16,7 +16,6 @@ async function initClient(userId) {
 
     console.log(`🚀 Creating WhatsApp client for ${userId}`);
 
-    // ✅ SMART CHROME PATH (LOCAL + RENDER SAFE)
     const chromePath =
         process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath();
 
@@ -27,16 +26,24 @@ async function initClient(userId) {
 
         puppeteer: {
             executablePath: chromePath,
-            headless: true,
+            headless: "new",
             args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
                 '--disable-dev-shm-usage',
                 '--disable-gpu',
+                '--single-process',
+                '--no-zygote',
                 '--disable-extensions',
                 '--disable-background-networking',
                 '--disable-sync',
-                '--disable-notifications'
+                '--disable-default-apps',
+                '--disable-translate',
+                '--metrics-recording-only',
+                '--mute-audio',
+                '--no-first-run',
+                '--disable-notifications',
+                '--disable-infobars'
             ]
         }
     });
@@ -48,7 +55,7 @@ async function initClient(userId) {
      */
 
     client.on('loading_screen', (percent, message) => {
-        console.log(`⏳ [${userId}] ${percent}% - ${message}`);
+        console.log(`⏳ [${userId}] ${percent}%`);
     });
 
     client.on('qr', async (qr) => {
@@ -67,16 +74,24 @@ async function initClient(userId) {
     client.on('ready', async () => {
         console.log(`✅ WHATSAPP READY (${userId})`);
 
-        // 🔥 GO OFFLINE (reduces weird behavior)
         try {
             await client.sendPresenceUnavailable();
-        } catch (e) {}
+        } catch {}
 
         delete qrStore[userId];
+
+        // 🔥 AUTO-KILL AFTER 5 MIN (PREVENT CRASH)
+        setTimeout(async () => {
+            console.log(`💀 Auto destroying client (${userId}) to save RAM`);
+            try {
+                await client.destroy();
+            } catch {}
+            cleanup(userId);
+        }, 5 * 60 * 1000);
     });
 
     client.on('auth_failure', (msg) => {
-        console.error(`❌ AUTH FAILURE (${userId}):`, msg);
+        console.error(`❌ AUTH FAILURE (${userId})`);
         cleanup(userId);
     });
 
@@ -85,15 +100,13 @@ async function initClient(userId) {
 
         try {
             await client.destroy();
-        } catch (e) {
-            console.error(`❌ Destroy error (${userId}):`, e);
-        }
+        } catch {}
 
         cleanup(userId);
     });
 
     /**
-     * 🤖 BOT LOGIC
+     * 🤖 LIGHTWEIGHT BOT LOGIC
      */
     client.on('message', async (msg) => {
         try {
@@ -101,53 +114,36 @@ async function initClient(userId) {
             if (msg.from.includes("@g.us")) return;
 
             const text = msg.body.toLowerCase();
-            console.log(`📩 ${userId}: ${text}`);
-
-            let reply;
 
             if (text.includes("hi") || text.includes("hello")) {
-                reply = `👋 Welcome to *[Your Hotel Name]*!
-
-How can I help you today? 😊`;
-            } else if (text.includes("price")) {
-                reply = `💰 Pricing:
-
-• Standard – ₹2000  
-• Deluxe – ₹3500  
-• Suite – ₹5000`;
-            } else if (text.includes("book")) {
-                reply = `📅 Sure! Please share:
-
-• Check-in date  
-• Check-out date  
-• Number of guests`;
-            } else {
-                reply = `😊 I'm here to help with bookings.
-
-You can ask:
-• room prices
-• availability
-• booking`;
+                return msg.reply("👋 Welcome! Type 'price' or 'book'");
             }
 
-            await msg.reply(reply);
+            if (text.includes("price")) {
+                return msg.reply("💰 Rooms: ₹2000 / ₹3500 / ₹5000");
+            }
+
+            if (text.includes("book")) {
+                return msg.reply("📅 Send check-in, check-out & guests");
+            }
 
         } catch (err) {
-            console.error(`❌ Message error (${userId}):`, err);
+            console.error(`❌ Message error (${userId})`);
         }
     });
 
     /**
-     * 🚀 INITIALIZE
+     * 🚀 DELAYED INITIALIZATION (CRITICAL)
      */
-    try {
-        await client.initialize();
-        console.log(`🚀 INITIALIZED (${userId})`);
-    } catch (err) {
-        console.error(`❌ INIT FAILED (${userId}):`, err);
-        cleanup(userId);
-        throw err;
-    }
+    setTimeout(async () => {
+        try {
+            await client.initialize();
+            console.log(`🚀 INITIALIZED (${userId})`);
+        } catch (err) {
+            console.error(`❌ INIT FAILED (${userId})`, err);
+            cleanup(userId);
+        }
+    }, 3000); // 🔥 delay reduces crash spike
 
     return client;
 }
